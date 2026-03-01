@@ -136,3 +136,46 @@ Strings are character sequences that also start and end with a `"`. Strings can 
 - `$c` (C-compatible strings)
 
 Example of a raw ASCII string: `let text be u8* = $rb"Raw text."`
+
+## Punctuation
+Punctuation are token separators and syntactic units. The following punctuators exist:
+- `{}` (Scope)
+- `,` (Value separator)
+- `;` (Statement separator, not necessary when the line only contains one statement)
+- `=>` (Match arm)
+- `<T,U>` (Syntax for generic types `T` and `U`)
+- `""` (Strings and characters)
+- `$` (String processing mode)
+- `#` (Comments)
+- `##` (Doc comments)
+
+### [WIP] Operators
+Operators are tokens that perform calculations and ensure accesses. The following operators exist (expand list later on):
+- `=` (Assignment)
+- `+` (Addition, unary positive)
+- `-` (Subtraction, unary negative)
+- `*` (Multiplication, variable dereference)
+- `/` (Division)
+- `%` (Remainder)
+- `&` (Boolean and bitwise AND, variable reference)
+- `|` (Boolean and bitwise OR)
+- `!` (Boolean NOT)
+- `^` (Boolean XOR)
+- `~` (Bitwise One's complement)
+- `<<` (Bit Left Shift)
+- `>>` (Bit Right Shift)
+- ``
+
+(Expand list below)
+```
+=
++= -= *= /= %=
+&= |= ^=
+<<= >>=
+< > <= >=
+.. ..=
+() []
+_
+:
+.
+```

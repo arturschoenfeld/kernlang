@@ -35,7 +35,10 @@ null true false
 # Control Flow
 if else match
 loop for while break skip
-return try defer
+return defer
+
+# Pointers and References
+ptr addr
 
 # Contracts
 pre inv post
@@ -43,13 +46,14 @@ pre inv post
 # User-Defined Types
 struct union enum pack
 
-# Definitions
-let def fn
-as be to in
-use
+# Top-Level Definitions
+let fn use
+
+# Clauses for Assignment, Target and Origin (CATO)
+as be to in of
 
 # Qualifiers
-const pub vol
+const pub vol comptime
 
 # Test Units
 assert test
@@ -62,6 +66,9 @@ export extern asm
 
 # Casts
 bitcast valcast
+
+# Type Introspection and Layout
+align size type
 ```
 
 ## Literals
@@ -142,8 +149,9 @@ Punctuation are token separators and syntactic units. The following punctuators 
 - `{}` (Scope)
 - `,` (Value separator)
 - `;` (Statement separator, not necessary when the line only contains one statement)
+- `->` (Function return type)
 - `=>` (Match arm)
-- `<T,U>` (Syntax for generic types `T` and `U`)
+- `<T,U>` (Syntax for generic types `T` and `U` of parameters)
 - `""` (Strings and characters)
 - `$` (String processing mode)
 - `#` (Comments)
@@ -155,27 +163,26 @@ Operators are tokens that perform calculations and ensure accesses. The followin
 - `+` (Addition, unary positive)
 - `-` (Subtraction, unary negative)
 - `*` (Multiplication, variable dereference)
-- `/` (Division)
+- `/` (Division of floats, integer division)
 - `%` (Remainder)
-- `&` (Boolean and bitwise AND, variable reference)
-- `|` (Boolean and bitwise OR)
-- `!` (Boolean NOT)
-- `^` (Boolean XOR)
-- `~` (Bitwise One's complement)
-- `<<` (Bit Left Shift)
-- `>>` (Bit Right Shift)
-- ``
+- `and` (Boolean and bitwise AND, variable reference)
+- `or` (Boolean and bitwise OR)
+- `not` (Boolean NOT, Bitwise One's complement)
+- `xor` (Bitwise XOR)
+- `shl` (Bit Left Shift)
+- `shr` (Bit Right Shift)
+- `eq` (Is equal)
+- `neq` (Is not equal)
+- `gt` (Greater than)
+- `gte` (Greater than equal)
+- `lt` (Less than)
+- `lte` (Less than equal)
+- `.` (Field member)
+- `..` (Range)
+- `..=` (Inclusive range)
+- `()` (Grouping expressions)
+- `[]` (Indexing, slices)
+- `_` (Wildcard)
+- `:` (Quantifier, indicates either dimension or instructs a value to be set for the given amout of elements)
 
-(Expand list below)
-```
-=
-+= -= *= /= %=
-&= |= ^=
-<<= >>=
-< > <= >=
-.. ..=
-() []
-_
-:
-.
-```
+Kern does not support compound operators, such as `+=`. It also does not have prefix or postfix incrementations/decrementations, such as `c++`.

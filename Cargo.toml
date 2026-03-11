@@ -1,0 +1,5 @@
+[package]
+name = "Kernlang"
+version = "0.0.1"
+authors = ["Artur Schönfeld"]
+edition = "2024"

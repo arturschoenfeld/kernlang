@@ -18,7 +18,7 @@ As a regular expression, identifiers are described like this:
 [a-zA-Z][_a-zA-Z\d]*
 ```
 
-## Keywords
+## [WIP] Keywords
 Keywords are intrinsic identifiers of the programming language. They only consist of lowercase letters. The only exception are data types, which also contain digits. As of now, the current keywords are planned:
 
 ```
@@ -37,9 +37,6 @@ if else match
 loop for while break skip
 return defer
 
-# Pointers and References
-ptr addr
-
 # Contracts
 pre inv post
 
@@ -49,8 +46,8 @@ struct union enum pack
 # Top-Level Definitions
 let fn use
 
-# Clauses for Assignment, Target and Origin (CATO)
-as be to in of
+# Intermediate Clauses
+as to in of
 
 # Qualifiers
 const pub vol comptime
@@ -142,7 +139,7 @@ Strings are character sequences that also start and end with a `"`. Strings can 
 - `$b` (Byte encoding, only ASCII characters)
 - `$c` (C-compatible strings)
 
-Example of a raw ASCII string: `let text be u8* = $rb"Raw text."`
+Example of a raw ASCII string: `let text point to u8 = $rb"Raw text."`
 
 ## Punctuation
 Punctuation are token separators and syntactic units. The following punctuators exist:
@@ -184,5 +181,7 @@ Operators are tokens that perform calculations and ensure accesses. The followin
 - `[]` (Indexing, slices)
 - `_` (Wildcard)
 - `:` (Quantifier, indicates either dimension or instructs a value to be set for the given amout of elements)
+- `^` (Variable dereference)
+- `@` (Variable reference)
 
 Kern does not support compound operators, such as `+=`. It also does not have prefix or postfix incrementations/decrementations, such as `c++`.

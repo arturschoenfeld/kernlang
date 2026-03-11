@@ -1,0 +1,13 @@
+pub fn add(a i32, b i32) -> i32 {
+    return a + b;
+}
+
+var x = 42
+var y = 0xFF
+var z = 3.14
+
+if x gt y {
+    return x
+} else {
+    return y
+}

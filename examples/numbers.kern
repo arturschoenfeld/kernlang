@@ -1,0 +1,97 @@
+; Decimal integers
+0
+1
+9
+10
+42
+1234567890
+00
+007
+000123
+
+; Decimal floats (dot)
+0.0
+1.0
+0.1
+10.25
+123.456
+1000.0001
+
+; Decimal floats (exponent)
+1e0
+1e1
+1e10
+10e5
+1.0e0
+1.5e2
+123.456e7
+1e+0
+1e-1
+1.0e+10
+1.0e-10
+1E0
+1.0E10
+1.0E-10
+
+; Binary integers
+0b0
+0b1
+0b10
+0b1010
+0b11111111
+0b01
+0b001010
+
+; Octal integers
+0o0
+0o7
+0o10
+0o77
+0o755
+0o01
+0o007
+
+; Hexadecimal integers
+0x0
+0x1
+0xF
+0xf
+0x10
+0xFF
+0xdead
+0xDEADBEEF
+0xAbCd
+0xabcdef
+
+; Hexadecimal floats (dot)
+0x1.0
+0xA.F
+0x0.1
+0x1A.2B
+0xDE.AD
+
+; Hexadecimal floats (exponent p/P)
+0x1p0
+0x1p1
+0xAp10
+0x1.0p0
+0x1.8p1
+0xA.Fp10
+0x1p+0
+0x1p-1
+0x1.0p+10
+0x1.0p-10
+0x1P0
+0x1.0P10
+0x1.0P-10
+
+; Edge but valid cases
+0.0
+0e0
+0x0p0
+1e999
+1e-999
+0x1p1024
+0x1p-1024
+var {} - > -> => 0 >=
+. .. ..? ..=

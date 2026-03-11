@@ -1,0 +1,37 @@
+isize i8 i16 i32 i64 i128
+usize u8 u16 u32 u64 u128
+
+fixsize fix8 fix16 fix32 fix64 fix128
+flt16 flt32 flt64 flt128 bflt16
+bool
+
+null true false
+
+if else match
+loop for while
+break skip
+return defer
+
+pre inv post
+
+struct union enum sum
+
+var fn use
+
+as to in of
+
+const pub vol pack
+
+test assert
+
+corout run yield cancel
+
+asm export extern
+
+bitcast valcast
+
+align size type
+
+and or not
+xor shl shr
+eq neq gt gte lt lte

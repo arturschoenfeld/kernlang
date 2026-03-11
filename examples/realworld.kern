@@ -1,0 +1,155 @@
+## Example program for lexer stress testing
+
+use math
+use io
+
+pub struct Vec3 {
+    x flt32
+    y flt32
+    z flt32
+}
+
+pub fn vec_add(a Vec3, b Vec3) -> Vec3 {
+    var result Vec3
+
+    result.x = a.x + b.x
+    result.y = a.y + b.y
+    result.z = a.z + b.z
+
+    return result
+}
+
+pub fn vec_dot(a Vec3, b Vec3) -> flt32 {
+    return a.x * b.x +
+           a.y * b.y +
+           a.z * b.z
+}
+
+pub fn factorial(n u32) -> u64 {
+    if n eq 0 {
+        return 1
+    }
+
+    var result u64 = 1
+    var i u32 = 1
+
+    while i lte n {
+        result = result * i
+        i = i + 1
+    }
+
+    return result
+}
+
+pub fn fib(n u32) -> u64 {
+    if n lte 1 {
+        return n
+    }
+
+    var a u64 = 0
+    var b u64 = 1
+    var i u32 = 2
+
+    while i lte n {
+        var next u64 = a + b
+        a = b
+        b = next
+        i = i + 1
+    }
+
+    return b
+}
+
+## numeric tests
+
+var dec1 = 42
+var dec2 = 123456789
+var real1 = 3.14159
+var real2 = 1.2e10
+var real3 = 5e-3
+
+var hex1 = 0xFF
+var hex2 = 0x10AF
+var hexfloat = 0x1.fp3
+
+var bin1 = 0b101010
+var oct1 = 0o77
+
+## operators
+
+var a = 10
+var b = 20
+
+var sum = a + b
+var diff = a - b
+var prod = a * b
+var quot = a / b
+var rem  = a % b
+
+var range1 = 0 .. 10
+var range2 = 0 ..= 10
+
+## comparisons using keywords
+
+if a gt b {
+    io.print("a greater")
+} else {
+    io.print("b greater")
+}
+
+if a eq b {
+    io.print("equal")
+}
+
+## loops
+
+loop {
+    break
+}
+
+for i in 0 .. 10 {
+    skip
+}
+
+## pointers and addresses
+
+var ptr ^i32
+var addr = @a
+
+## generics-like syntax
+
+struct Pair<T, U> {
+    first T
+    second U
+}
+
+## comments
+
+# single line comment
+# another comment
+
+## attributes (future feature)
+
+###[test]
+test fn simple_test() {
+    assert(1 eq 1)
+}
+
+## nested punctuation stress
+
+var arr = [1,2,3,4,5]
+
+var matrix = [
+    [1,2,3],
+    [4,5,6],
+    [7,8,9]
+]
+
+var complex = ((a + b) * (a - b)) / (a + 1)
+
+## string test placeholders
+
+var s = "hello"
+var t = "world"
+
+## end of file

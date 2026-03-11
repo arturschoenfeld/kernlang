@@ -59,10 +59,6 @@ typedef enum{
 	KWRD_RETURN,
 	KWRD_DEFER,
 
-	// Pointers and References
-	KWRD_PTR,
-	KWRD_ADDR,
-
 	// Contracts
 	KWRD_PRE,
 	KWRD_INV,
@@ -79,7 +75,7 @@ typedef enum{
 	KWRD_FN,
 	KWRD_USE,
 
-	// CATO
+	// Intermediate Clauses
 	KWRD_AS,
 	KWRD_BE,
 	KWRD_TO,

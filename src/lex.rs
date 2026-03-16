@@ -1,8 +1,6 @@
 #[derive(Debug, Default)]
 pub struct Token{
     pub token_type : TokenType,
-    pub src_line : usize,
-    pub src_col : usize,
     pub tok_pos : usize,
     pub tok_len : usize
 }
@@ -72,7 +70,10 @@ pub enum Keyword{
     // Bitwise and Boolean Operators
     AND, OR, NOT,
     XOR, SHL, SHR,
-    EQ, NEQ, GT, GTE, LT, LTE
+    EQ, NEQ, GT, GTE, LT, LTE,
+
+	// Otherwise reserved
+	SAT, WRAP				// For saturating and wrapping arithmetics respectively
 }
 
 #[derive(Debug)]
@@ -108,9 +109,7 @@ pub enum LiteralType{
 pub struct Lexer<'src>{
     source: &'src[u8],
     pub length: usize,
-    pub pos: usize,
-    line: usize,
-    col: usize
+    pub pos: usize
 }
 
 static CHAR_CLASS: [u8; 128] = {
@@ -118,12 +117,12 @@ static CHAR_CLASS: [u8; 128] = {
     let mut i  = 0;
     while i < 128 {
         table[i] = match i as u8{
-            b'a' ..= b'z' | b'A' ..= b'Z' => 1,
-            b'0' ..= b'9' => 2,
-            b'=' | b'+' | b'-' | b'*' | b'/' | b'%' | b'.' | b'_' | b':' | b'^' | b'@' |
+            b'a' ..= b'z' | b'A' ..= b'Z' => 1,												// alphabetic
+            b'0' ..= b'9' => 2,																// numeric
+            b'=' | b'+' | b'-' | b'*' | b'/' | b'%' | b'.' | b'_' | b':' | b'^' | b'@' |	// special chars
             b'[' | b']' | b'(' | b')' | b'{' | b'}' | b',' | b';' | b'<' | b'>' | b'"' |
             b'#' | b'$' => 3,
-            _ => 0
+            _ => 0																			// unknown
         };
         i += 1;
     }
@@ -133,32 +132,27 @@ static CHAR_CLASS: [u8; 128] = {
 impl<'src> Lexer<'src>{
     pub fn new(source: &'src str) -> Self{
         let mut bytes = Vec::with_capacity(source.len() + 1);
-        bytes.extend_from_slice((source.as_bytes()));
+        bytes.extend_from_slice(source.as_bytes());
         bytes.push(0);
         let slice = Box::leak(bytes.into_boxed_slice());
         Lexer{
             source: slice,
             length: source.len() + 1,
             pos: 0,
-            line: 1,
-            col: 1
         }
     }
 
+	#[inline(always)]
     fn peek(&self) -> *const u8{
         &self.source[self.pos]
     }
 
+	#[inline(always)]
     fn advance(&mut self){
         unsafe{
-            match *self.peek(){
-                0 => return,
-                b'\n' => {
-                    self.line += 1;
-                    self.col = 1;
-                },
-                _ => self.col += 1,
-            }
+            if *self.peek() == 0 {
+                return;
+			}
         }
         self.pos += 1;
     }
@@ -180,29 +174,26 @@ impl<'src> Lexer<'src>{
 
         unsafe{
             match CHAR_CLASS[*self.peek() as usize]{
+				// First char is a letter
                 1 => {
                     return Token { 
                         token_type : self.detect_id_or_kwrd(),
-                        src_line : self.line,
-                        src_col : self.col,
                         tok_pos : start,
                         tok_len : self.pos - start
                     }       
                 },
+				// First char is a digit
                 2 => {
                     return Token { 
                         token_type : TokenType::Literal(self.detect_number()),
-                        src_line : self.line,
-                        src_col : self.col,
                         tok_pos : start,
                         tok_len : self.pos - start
                     }
                 },
+				// First char is special char
                 3 => {
                     return Token { 
                         token_type : TokenType::Punc(self.detect_punc()),
-                        src_line : self.line,
-                        src_col : self.col,
                         tok_pos : start,
                         tok_len : self.pos - start
                     }
@@ -212,16 +203,12 @@ impl<'src> Lexer<'src>{
                     if *self.peek() == 0{
                         return Token{
                             token_type : TokenType::EOF,
-                            src_line : self.line,
-                            src_col : self.col,
                             tok_pos : start,
                             tok_len : self.pos - start
                         }
                     } else {
                         return Token{
                             token_type : TokenType::Error,
-                            src_line : self.line,
-                            src_col : self.col,
                             tok_pos : start,
                             tok_len : self.pos - start
                         }
@@ -234,101 +221,129 @@ impl<'src> Lexer<'src>{
     fn detect_id_or_kwrd(&mut self) -> TokenType{
         let start = self.pos;
         unsafe{
-            while (CHAR_CLASS[*self.peek() as usize] == 1)
+			while (CHAR_CLASS[*self.peek() as usize] == 1)
             || (CHAR_CLASS[*self.peek() as usize] == 2)
             || (*self.peek() == b'_'){
                 self.advance();
             }
         }
-
-        if (self.pos - start) > 7 {
-            return TokenType::Ident;
-        }
-
-        match &self.source[start..self.pos] as &[u8] {
-            b"isize" => return TokenType::Keyword(Keyword::ISIZE),
-            b"i8" => return TokenType::Keyword(Keyword::I8),
-            b"i16" => return TokenType::Keyword(Keyword::I16),
-            b"i32" => return TokenType::Keyword(Keyword::I32),
-            b"i64" => return TokenType::Keyword(Keyword::I64),
-            b"i128" => return TokenType::Keyword(Keyword::I128),
-            b"usize" => return TokenType::Keyword(Keyword::USIZE),
-            b"u8" => return TokenType::Keyword(Keyword::U8),
-            b"u16" => return TokenType::Keyword(Keyword::U16),
-            b"u32" => return TokenType::Keyword(Keyword::U32),
-            b"u64" => return TokenType::Keyword(Keyword::U64),
-            b"u128" => return TokenType::Keyword(Keyword::U128),
-            b"fixsize" => return TokenType::Keyword(Keyword::FIXSIZE),
-            b"fix8" => return TokenType::Keyword(Keyword::FIX8),
-            b"fix16" => return TokenType::Keyword(Keyword::FIX16),
-            b"fix32" => return TokenType::Keyword(Keyword::FIX32),
-            b"fix64" => return TokenType::Keyword(Keyword::FIX64),
-            b"fix128" => return TokenType::Keyword(Keyword::FIX128),
-            b"flt16" => return TokenType::Keyword(Keyword::FLT16),
-            b"flt32" => return TokenType::Keyword(Keyword::FLT32),
-            b"flt64" => return TokenType::Keyword(Keyword::FLT64),
-            b"flt128" => return TokenType::Keyword(Keyword::FLT128),
-            b"bflt16" => return TokenType::Keyword(Keyword::BFLT16),
-            b"bool" => return TokenType::Keyword(Keyword::BOOL),
-            b"null" => return TokenType::Keyword(Keyword::NULL),
-            b"true" => return TokenType::Keyword(Keyword::TRUE),
-            b"false" => return TokenType::Keyword(Keyword::FALSE),
-            b"if" => return TokenType::Keyword(Keyword::IF),
-            b"else" => return TokenType::Keyword(Keyword::ELSE),
-            b"match" => return TokenType::Keyword(Keyword::MATCH),
-            b"loop" => return TokenType::Keyword(Keyword::LOOP),
-            b"for" => return TokenType::Keyword(Keyword::FOR),
-            b"while" => return TokenType::Keyword(Keyword::WHILE),
-            b"break" => return TokenType::Keyword(Keyword::BREAK),
-            b"skip" => return TokenType::Keyword(Keyword::SKIP),
-            b"return" => return TokenType::Keyword(Keyword::RETURN),
-            b"defer" => return TokenType::Keyword(Keyword::DEFER),
-            b"pre" => return TokenType::Keyword(Keyword::PRE),
-            b"inv" => return TokenType::Keyword(Keyword::INV),
-            b"post" => return TokenType::Keyword(Keyword::POST),
-            b"struct" => return TokenType::Keyword(Keyword::STRUCT),
-            b"union" => return TokenType::Keyword(Keyword::UNION),
-            b"enum" => return TokenType::Keyword(Keyword::ENUM),
-            b"sum" => return TokenType::Keyword(Keyword::SUM),
-            b"var" => return TokenType::Keyword(Keyword::VAR),
-            b"fn" => return TokenType::Keyword(Keyword::FN),
-            b"use" => return TokenType::Keyword(Keyword::USE),
-            b"as" => return TokenType::Keyword(Keyword::AS),
-            b"to" => return TokenType::Keyword(Keyword::TO),
-            b"in" => return TokenType::Keyword(Keyword::IN),
-            b"of" => return TokenType::Keyword(Keyword::OF),
-            b"const" => return TokenType::Keyword(Keyword::CONST),
-            b"pub" => return TokenType::Keyword(Keyword::PUB),
-            b"vol" => return TokenType::Keyword(Keyword::VOL),
-            b"pack" => return TokenType::Keyword(Keyword::PACK),
-            b"test" => return TokenType::Keyword(Keyword::TEST),
-            b"assert" => return TokenType::Keyword(Keyword::ASSERT),
-            b"corout" => return TokenType::Keyword(Keyword::COROUT),
-            b"run" => return TokenType::Keyword(Keyword::RUN),
-            b"yield" => return TokenType::Keyword(Keyword::YIELD),
-            b"cancel" => return TokenType::Keyword(Keyword::CANCEL),
-            b"asm" => return TokenType::Keyword(Keyword::ASM),
-            b"export" => return TokenType::Keyword(Keyword::EXPORT),
-            b"extern" => return TokenType::Keyword(Keyword::EXTERN),
-            b"bitcast" => return TokenType::Keyword(Keyword::BITCAST),
-            b"valcast" => return TokenType::Keyword(Keyword::VALCAST),
-            b"align" => return TokenType::Keyword(Keyword::ALIGN),
-            b"size" => return TokenType::Keyword(Keyword::SIZE),
-            b"type" => return TokenType::Keyword(Keyword::TYPE),
-            b"and" => return TokenType::Keyword(Keyword::AND),
-            b"or" => return TokenType::Keyword(Keyword::OR),
-            b"not" => return TokenType::Keyword(Keyword::NOT),
-            b"xor" => return TokenType::Keyword(Keyword::XOR),
-            b"shl" => return TokenType::Keyword(Keyword::SHL),
-            b"shr" => return TokenType::Keyword(Keyword::SHR),
-            b"eq" => return TokenType::Keyword(Keyword::EQ),
-            b"neq" => return TokenType::Keyword(Keyword::NEQ),
-            b"gt" => return TokenType::Keyword(Keyword::GT),
-            b"gte" => return TokenType::Keyword(Keyword::GTE),
-            b"lt" => return TokenType::Keyword(Keyword::LT),
-            b"lte" => return TokenType::Keyword(Keyword::LTE),
-            _ => return TokenType::Ident
-        }
+		
+		// Length and subsequent string dispatch
+		match self.pos - start {
+			2 => {
+				match &self.source[start..self.pos] as &[u8]{
+					b"i8" => return TokenType::Keyword(Keyword::I8),
+					b"u8" => return TokenType::Keyword(Keyword::U8),
+					b"if" => return TokenType::Keyword(Keyword::IF),
+					b"fn" => return TokenType::Keyword(Keyword::FN),
+					b"as" => return TokenType::Keyword(Keyword::AS),
+					b"to" => return TokenType::Keyword(Keyword::TO),
+					b"in" => return TokenType::Keyword(Keyword::IN),
+					b"of" => return TokenType::Keyword(Keyword::OF),
+					b"or" => return TokenType::Keyword(Keyword::OR),
+					b"eq" => return TokenType::Keyword(Keyword::EQ),
+					b"gt" => return TokenType::Keyword(Keyword::GT),
+					b"lt" => return TokenType::Keyword(Keyword::LT),
+					_ => return TokenType::Ident
+				}
+			},
+			3 => {
+				match &self.source[start..self.pos] as &[u8]{
+					b"i16" => return TokenType::Keyword(Keyword::I16),
+					b"i32" => return TokenType::Keyword(Keyword::I32),
+					b"i64" => return TokenType::Keyword(Keyword::I64),
+					b"u16" => return TokenType::Keyword(Keyword::U16),
+					b"u32" => return TokenType::Keyword(Keyword::U32),
+					b"u64" => return TokenType::Keyword(Keyword::U64),
+					b"for" => return TokenType::Keyword(Keyword::FOR),
+					b"pre" => return TokenType::Keyword(Keyword::PRE),
+					b"inv" => return TokenType::Keyword(Keyword::INV),
+					b"sum" => return TokenType::Keyword(Keyword::SUM),
+					b"var" => return TokenType::Keyword(Keyword::VAR),
+					b"use" => return TokenType::Keyword(Keyword::USE),
+					b"pub" => return TokenType::Keyword(Keyword::PUB),
+					b"vol" => return TokenType::Keyword(Keyword::VOL),
+					b"run" => return TokenType::Keyword(Keyword::RUN),
+					b"asm" => return TokenType::Keyword(Keyword::ASM),
+					b"and" => return TokenType::Keyword(Keyword::AND),
+					b"not" => return TokenType::Keyword(Keyword::NOT),
+					b"xor" => return TokenType::Keyword(Keyword::XOR),
+					b"shl" => return TokenType::Keyword(Keyword::SHL),
+					b"shr" => return TokenType::Keyword(Keyword::SHR),
+					b"neq" => return TokenType::Keyword(Keyword::NEQ),
+					b"gte" => return TokenType::Keyword(Keyword::GTE),
+					b"lte" => return TokenType::Keyword(Keyword::LTE),
+					_ => return TokenType::Ident
+				}
+			}, 
+			4 => {
+				match &self.source[start..self.pos] as &[u8]{
+					b"i128" => return TokenType::Keyword(Keyword::I128),
+					b"u128" => return TokenType::Keyword(Keyword::U128),
+					b"fix8" => return TokenType::Keyword(Keyword::FIX8),
+					b"bool" => return TokenType::Keyword(Keyword::BOOL),
+					b"null" => return TokenType::Keyword(Keyword::NULL),
+					b"true" => return TokenType::Keyword(Keyword::TRUE),
+					b"else" => return TokenType::Keyword(Keyword::ELSE),
+					b"loop" => return TokenType::Keyword(Keyword::LOOP),
+					b"skip" => return TokenType::Keyword(Keyword::SKIP),
+					b"post" => return TokenType::Keyword(Keyword::POST),
+					b"enum" => return TokenType::Keyword(Keyword::ENUM),
+					b"pack" => return TokenType::Keyword(Keyword::PACK),
+					b"test" => return TokenType::Keyword(Keyword::TEST),
+					b"size" => return TokenType::Keyword(Keyword::SIZE),
+					b"type" => return TokenType::Keyword(Keyword::TYPE),
+					_ => return TokenType::Ident
+				}
+			},
+			5 => {
+				match &self.source[start..self.pos] as &[u8]{
+					b"isize" => return TokenType::Keyword(Keyword::ISIZE),
+		            b"usize" => return TokenType::Keyword(Keyword::USIZE),
+					b"fix16" => return TokenType::Keyword(Keyword::FIX16),
+					b"fix32" => return TokenType::Keyword(Keyword::FIX32),
+					b"fix64" => return TokenType::Keyword(Keyword::FIX64),
+					b"flt16" => return TokenType::Keyword(Keyword::FLT16),
+					b"flt32" => return TokenType::Keyword(Keyword::FLT32),
+					b"flt64" => return TokenType::Keyword(Keyword::FLT64),
+					b"false" => return TokenType::Keyword(Keyword::FALSE),
+					b"match" => return TokenType::Keyword(Keyword::MATCH),
+					b"while" => return TokenType::Keyword(Keyword::WHILE),
+					b"break" => return TokenType::Keyword(Keyword::BREAK),
+					b"defer" => return TokenType::Keyword(Keyword::DEFER),
+					b"union" => return TokenType::Keyword(Keyword::UNION),
+					b"const" => return TokenType::Keyword(Keyword::CONST),
+					b"yield" => return TokenType::Keyword(Keyword::YIELD),
+					b"align" => return TokenType::Keyword(Keyword::ALIGN),
+					_ => return TokenType::Ident
+				}
+			},
+			6 => {
+				match &self.source[start..self.pos] as &[u8]{
+					b"fix128" => return TokenType::Keyword(Keyword::FIX128),
+					b"flt128" => return TokenType::Keyword(Keyword::FLT128),
+					b"bflt16" => return TokenType::Keyword(Keyword::BFLT16),
+					b"return" => return TokenType::Keyword(Keyword::RETURN),
+					b"struct" => return TokenType::Keyword(Keyword::STRUCT),
+					b"assert" => return TokenType::Keyword(Keyword::ASSERT),
+					b"corout" => return TokenType::Keyword(Keyword::COROUT),
+		            b"cancel" => return TokenType::Keyword(Keyword::CANCEL),
+					b"export" => return TokenType::Keyword(Keyword::EXPORT),
+					b"extern" => return TokenType::Keyword(Keyword::EXTERN),
+					_ => return TokenType::Ident
+				}
+			},
+			7 => {
+				match &self.source[start..self.pos] as &[u8]{
+					b"fixsize" => return TokenType::Keyword(Keyword::FIXSIZE),
+					b"bitcast" => return TokenType::Keyword(Keyword::BITCAST),
+					b"valcast" => return TokenType::Keyword(Keyword::VALCAST),
+					_ => return TokenType::Ident
+				}
+			},
+			_ => return TokenType::Ident
+		}
+		
     }
 
     fn detect_number(&mut self) -> LiteralType{
@@ -539,75 +554,54 @@ impl<'src> Lexer<'src>{
     }
 
     fn detect_punc(&mut self) -> Punc {
-        unsafe{
-            let c = *self.peek();
-            self.advance();
-            match c{
-                b'=' => {
-                    if *self.peek() == b'>' {
-                        self.advance();
-                        return Punc::FatArrow;
-                    } else {
-                        return Punc::Assignment;
-                    }
-                }
-                b'+' => return Punc::Plus,
-                b'-' => {
-                    if *self.peek() == b'>' {
-                        self.advance();
-                        return Punc::Arrow;
-                    } else {
-                        return Punc::Minus;
-                    }
-                }
-                b'*' => return Punc::Mul,
-                b'/' => return Punc::Div,
-                b'%' => return Punc::Mod,
-                b'.' => {
-                    if *self.peek() == b'.' {
-                        self.advance();
-                        if *self.peek() == b'=' {
-                            self.advance();
-                            return Punc::RangeIncl;
-                        } else {
-                            return Punc::Range;
-                        }
-                    } else {
-                        return Punc::Dot;
-                    }
-                }
-                b'_' => return Punc::Wildcard,
-                b':' => return Punc::Quantifier,
-                b'^' => return Punc::Pointer,
-                b'@' => return Punc::Address,
-                b'[' => return Punc::BrackL,
-                b']' => return Punc::BrackR,
-                b'(' => return Punc::ParenL,
-                b')' => return Punc::ParenR,
-                b'{' => return Punc::BraceL,
-                b'}' => return Punc::BraceR,
-                b',' => return Punc::Comma,
-                b';' => return Punc::Semicolon,
-                b'<' => return Punc::GenL,
-                b'>' => return Punc::GenR,
-                b'"' => return Punc::Doublequote,   // Becomes string detector
-                b'$' => return Punc::Dollar,        // Becomes string directive
-                b'#' => {
-                    if *self.peek() == b'#' {
-                        self.advance();
-                        while *self.peek() != b'\n' && *self.peek() != 0 {
-                            self.advance();
-                        }
-                        return Punc::Docs;
-                    } else {
-                        while *self.peek() != b'\n' && *self.peek() != 0 {
-                            self.advance();
-                        }
-                        return Punc::Comment;
-                    }
-                },
+        let start = self.pos;
+		unsafe{
+			while CHAR_CLASS[*self.peek() as usize] == 3{
+                self.advance();
+            }
+			
+            match self.pos - start {
+				1 => match &self.source[start] {
+					b'=' => return Punc::Assignment,
+					b'+' => return Punc::Plus,
+					b'-' => return Punc::Minus,
+					b'*' => return Punc::Mul,
+					b'/' => return Punc::Div,
+					b'%' => return Punc::Mod,
+					b'.' => return Punc::Dot,
+					b'_' => return Punc::Wildcard,
+					b':' => return Punc::Quantifier,
+					b'^' => return Punc::Pointer,
+					b'@' => return Punc::Address,
+					b'[' => return Punc::BrackL,
+					b']' => return Punc::BrackR,
+					b'(' => return Punc::ParenL,
+					b')' => return Punc::ParenR,
+					b'{' => return Punc::BraceL,
+					b'}' => return Punc::BraceR,
+					b',' => return Punc::Comma,
+					b';' => return Punc::Semicolon,
+					b'<' => return Punc::GenL,
+					b'>' => return Punc::GenR,
+					b'"' => return Punc::Doublequote,
+					b'$' => return Punc::Dollar,
+					b'#' => return Punc::Comment,
+					_ => return Punc::Unknown,   
+				},
+				2 => match &self.source[start..self.pos] as &[u8]{
+					b"->" => return Punc::Arrow,
+					b"=>" => return Punc::FatArrow,
+					b".." => return Punc::Range,
+					b"##" => return Punc::Docs,
+					_ => return Punc::Unknown,
+				},
+				3 => match &self.source[start..self.pos] as &[u8]{
+					b"..=" => return Punc::RangeIncl,
+					_ => return Punc::Unknown,
+				},
                 _ => return Punc::Unknown,
             }
         }
     }
 }
+

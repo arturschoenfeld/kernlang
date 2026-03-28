@@ -130,15 +130,15 @@ static CHAR_CLASS: [u8; 128] = {
 };
 
 impl<'src> Lexer<'src>{
-    pub fn new(source: &'src str) -> Self{
+    pub fn new(source: &'src [u8]) -> Self{
         let mut bytes = Vec::with_capacity(source.len() + 1);
-        bytes.extend_from_slice(source.as_bytes());
+        bytes.extend_from_slice(source);
         bytes.push(0);
         let slice = Box::leak(bytes.into_boxed_slice());
         Lexer{
             source: slice,
             length: source.len() + 1,
-            pos: 0,
+            pos: 0
         }
     }
 
@@ -157,6 +157,7 @@ impl<'src> Lexer<'src>{
         self.pos += 1;
     }
 
+    #[inline(always)]
     fn skip_nontokens(&mut self) {
         loop {
             unsafe {
@@ -168,6 +169,7 @@ impl<'src> Lexer<'src>{
         }
     }
 
+    #[inline(always)]
     pub fn create_token(&mut self) -> Token {
         self.skip_nontokens();
         let start = self.pos;
@@ -218,6 +220,7 @@ impl<'src> Lexer<'src>{
         }
     }
 
+    #[inline(always)]
     fn detect_id_or_kwrd(&mut self) -> TokenType{
         let start = self.pos;
         unsafe{
@@ -346,6 +349,7 @@ impl<'src> Lexer<'src>{
 		
     }
 
+    #[inline(always)]
     fn detect_number(&mut self) -> LiteralType{
         enum State{
             Start, Startzero,
@@ -553,6 +557,7 @@ impl<'src> Lexer<'src>{
         }
     }
 
+    #[inline(always)]
     fn detect_punc(&mut self) -> Punc {
         let start = self.pos;
 		unsafe{
